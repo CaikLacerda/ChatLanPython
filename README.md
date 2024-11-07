@@ -1,4 +1,5 @@
-Chat Cliente/Servidor em uma aplicação Flask
+Chat Cliente/Servidor em uma aplicação Python
+
 Tecnologias utilizadas 💻
 Python;
 Flask;
