@@ -18,4 +18,4 @@ Abra duas vezes a aplicação do Chat inserida no repositório acima. No caso, s
 Insira um nome de usuário e seu login (senha); Obs: Nesta versão do projeto não temos validação de senha, com isso o usuário pode acessar utilizando qualquer uma.
 E clique em 'Conectar'.
 
-Desenvolvido Caio Alves, Caik Lacerda, Raul Vicente e Bruno Bueno
+Desenvolvido por Caio Alves, Caik Lacerda, Raul Vicente e Bruno Bueno
