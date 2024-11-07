@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Ao Vivo</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6f7dff, #8e9bff);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #6f7dff;
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .header img {
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .header .username {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-bottom: 2px solid #f1f1f1;
+            border-top: 2px solid #f1f1f1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .messages p {
+            background: #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px 0;
+            max-width: 80%;
+            align-self: flex-start;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .messages p:nth-child(even) {
+            background: #d0e9ff;
+            align-self: flex-end;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 15px;
+            background-color: #fff;
+            border-top: 2px solid #f1f1f1;
+            border-radius: 0 0 12px 12px;
+        }
+
+        input {
+            width: calc(100% - 100px);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-right: 10px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: #6f7dff;
+            box-shadow: 0 0 5px rgba(111, 125, 255, 0.5);
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: #6f7dff;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background-color: #5a69e3;
+        }
+
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            z-index: 10;
+            max-height: 200px;
+            overflow-y: scroll;
+        }
+
+        .emoji-picker span {
+            font-size: 24px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .emoji-picker span:hover {
+            background-color: #f0f0f0;
+            border-radius: 6px;
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-container input {
+            width: 200px;
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .login-container button {
+            width: 220px;
+            padding: 12px;
+            background-color: #6f7dff;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .login-container button:hover {
+            background-color: #5a69e3;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login" class="login-container">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Nome de usuário" />
+        <input type="password" id="user-login" placeholder="Login" />
+        <button onclick="login()">Entrar</button>
+    </div>
+
+    <div id="chat" class="chat-container" style="display: none;">
+        <div class="header">
+            <img id="profile-img" src="https://via.placeholder.com/40" alt="Foto de perfil" />
+            <div id="user-name" class="username"></div>
+        </div>
+        <div id="messages" class="messages"></div>
+        <div class="input-container">
+            <input id="message" type="text" placeholder="Digite sua mensagem" autofocus />
+            <button onclick="sendMessage()">Enviar</button>
+            <button onclick="toggleEmojiPicker()">😊</button>
+            <input type="file" id="fileInput" style="display: none;" onchange="sendImage()" />
+            <button onclick="document.getElementById('fileInput').click()">📷</button>
+        </div>
+        <div id="emoji-picker" class="emoji-picker">
+            <span onclick="addEmoji('😊')">😊</span>
+            <span onclick="addEmoji('😂')">😂</span>
+            <span onclick="addEmoji('❤️')">❤️</span>
+            <span onclick="addEmoji('👍')">👍</span>
+            <span onclick="addEmoji('😢')">😢</span>
+            <span onclick="addEmoji('😎')">😎</span>
+        </div>
+    </div>
+
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var username = '';
+        var userLogin = '';
+        var profileImg = 'https://via.placeholder.com/40';
+
+        function login() {
+            username = document.getElementById('username').value;
+            userLogin = document.getElementById('user-login').value;
+            profileImg = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(username) + '&background=6f7dff&color=fff';
+
+            document.getElementById('user-name').textContent = username;
+            document.getElementById('profile-img').src = profileImg;
+
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('chat').style.display = 'flex';
+
+            socket.emit('login', { user: username, login: userLogin });
+        }
+
+        socket.on('message', function(msg) {
+            var messageElement = document.createElement("p");
+            messageElement.innerHTML = msg.message;
+            document.getElementById("messages").appendChild(messageElement);
+            document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+        });
+
+        function sendMessage() {
+            var message = document.getElementById("message").value;
+            if (message) {
+                socket.emit("message", { user: username, message: message });
+                document.getElementById("message").value = "";
+            }
+        }
+
+        function toggleEmojiPicker() {
+            var emojiPicker = document.getElementById("emoji-picker");
+            emojiPicker.style.display = emojiPicker.style.display === "none" ? "block" : "none";
+        }
+
+        function addEmoji(emoji) {
+            var messageInput = document.getElementById("message");
+            messageInput.value += emoji;
+            toggleEmojiPicker();
+        }
+
+        function sendImage() {
+            var file = document.getElementById('fileInput').files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onloadend = function () {
+                    socket.emit('image', { user: username, image: reader.result });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        socket.on('image', function(data) {
+            var messageElement = document.createElement("p");
+            var imgElement = document.createElement("img");
+            imgElement.src = data.image;
+            imgElement.style.maxWidth = '300px';
+            messageElement.appendChild(imgElement);
+            document.getElementById("messages").appendChild(messageElement);
+            document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+        });
+    </script>
+</body>
+</html>
